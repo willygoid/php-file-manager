@@ -174,10 +174,7 @@ body.dark .border { border-color: #4b5563 !important; }
 body.dark .text-gray-700 { color: #d1d5db !important; }
 body.dark .text-gray-500 { color: #9ca3af !important; }
 body.dark .bg-gray-50 { background-color: #374151 !important; }
-body.dark .bg-gray-300 {
-  background-color: #4b5563 !important;
-  color: #f9fafb !important;           
-}
+body.dark .bg-gray-300 {background-color: #4b5563 !important; color: #f9fafb !important;}
 </style>
 <script>
 $(function(){
@@ -198,9 +195,11 @@ $(function(){
 </head>
 <body class="bg-gray-100">
 <header class="container mx-auto flex items-center justify-between p-4">
-    <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold">Jawir FM</h1>
-    <a href="#" target="_blank" class="flex items-center">
-    <img alt="Logo App" class="h-8 md:h-12" src="//i.postimg.cc/Kc6D2ry7/joshoki-rezized.webp"/>
+    <a href="?path=<?=urlencode($self_dir)?>" class="flex items-center">
+        <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold">Jawir FM</h1>
+    </a>
+    <a href="?path=<?=urlencode($docroot)?>" class="flex items-center">
+        <img alt="Logo App" class="h-8 md:h-12" src="//sga-cdn-hxg6b2d7ctb2c0eu.z02.azurefd.net/agent-websites/319/medialibrary/images/319_756a1e4ed5294e85a8c61f1031637228.webp"/>
     </a>
 </header>
 <main role="main" class="container mx-auto mb-4">
