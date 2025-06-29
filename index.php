@@ -132,6 +132,7 @@ foreach($files as $f){
     if($f=='.'||$f=='..')continue;
     $fp=$path.'/'.$f;
     $stat = stat($fp);
+    if($search && stripos($f,$search)===false) continue;
     $owner= (function($uid){ $u=posix_getpwuid($uid); return $u?$u['name']:'?'; })($stat['uid']);
     $group= (function($gid){ $g=posix_getgrgid($gid); return $g?$g['name']:'?'; })($stat['gid']);
     $perm= substr(sprintf('%o', $stat['mode']), -3);
@@ -169,6 +170,7 @@ $docroot = realpath($_SERVER['DOCUMENT_ROOT']);
 <head>
 <meta charset="UTF-8">
 <title>File Manager Pro</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 <style>
@@ -246,7 +248,7 @@ $(function(){
     <a href="?path=<?=urlencode($self_dir)?>" class="bg-gray-300 px-2 py-1 rounded">📂 FM Dir</a>
     </div>    
     <div class="flex space-x-2">
-    <form method="get" class="flex space-x-1"><input type="hidden" name="path" value="<?=htmlspecialchars($path)?>"><input type="text" name="search" value="<?=htmlspecialchars($search)?>" placeholder="Search..." class="border px-2 rounded"><button class="bg-gray-300 px-2 rounded">🔍</button></form>
+    <form method="get" class="flex space-x-1 mb-2 md:mb-0"><input type="hidden" name="path" value="<?=htmlspecialchars($path)?>"><input type="text" name="search" value="<?=htmlspecialchars($search)?>" placeholder="Search..." class="border px-2 py-1 rounded w-32"><button class="bg-gray-300 px-2 rounded">🔍</button></form>
     <button id="showDownloader" class="bg-gray-300 px-2 py-1 rounded flex items-center space-x-1">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5 text-gray-700">
             <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m.75 12 3 3m0 0 3-3m-3 3v-6m-1.5-9H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
@@ -283,7 +285,7 @@ $(function(){
     <th class="p-2">Perm</th>
     <th class="p-2"><a href="<?=sort_url('mtime',$sort,$order,$path,$search)?>" class="hover:underline">Last Modified<?=($sort=='mtime'?($order=='asc'?' 🔼':' 🔽'):'')?></a></th>
     <th class="p-2">Action</th></tr>
-    <?php if($path != $parent): ?><tr class="border-t hover:bg-yellow-200 dark:hover:bg-gray-700"><td class="p-2"><a href="?path=<?=urlencode($parent)?>" class="text-blue-500">📁 ..</a></td><td class="p-2">-</td><td class="p-2">-</td></tr><?php endif; ?>
+    <?php if($path != $parent): ?><tr class="border-t hover:bg-yellow-200 dark:hover:bg-gray-700"><td class="p-2"><a href="?path=<?=urlencode($parent)?>" class="text-blue-500">📁 ..</a></td><td class="p-2">-</td><td class="p-2">-</td><td class="p-2">-</td><td class="p-2">-</td></tr><?php endif; ?>
     <?php foreach(array_merge($folders,$regular_files) as $f):$fp=$path.'/'.$f['name'];$mtime=date('Y-m-d\TH:i',$f['mtime']); ?>
     <tr class="border-t hover:bg-yellow-200 dark:hover:bg-gray-700">
     <td class="p-2"><?php if(is_dir($fp)):?><a href="?path=<?=urlencode($fp)?>" class="text-blue-500">📁 <?=htmlspecialchars($f['name'])?></a><?php else:?>📄 <?=htmlspecialchars($f['name'])?><?php endif;?></td>
