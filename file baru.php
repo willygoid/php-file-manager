@@ -1,1 +1,1 @@
-<?php echo "Hello word!";
+<?php echo "Hello words!";

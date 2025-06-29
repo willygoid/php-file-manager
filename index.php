@@ -18,13 +18,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         rename($from, $to);
     } elseif (isset($_POST['edit_file']) && isset($_POST['content'])) {
         file_put_contents($path . DIRECTORY_SEPARATOR . basename($_POST['edit_file']), $_POST['content']);
-    } elseif (isset($_FILES['files'])) {
-        foreach ($_FILES['files']['tmp_name'] as $i => $tmp) {
-            move_uploaded_file($tmp, $path . DIRECTORY_SEPARATOR . basename($_FILES['files']['name'][$i]));
-        }
     } elseif (isset($_POST['get_content'])) {
         $file = $path . DIRECTORY_SEPARATOR . basename($_POST['get_content']);
-        if (is_file($file)) echo htmlspecialchars(file_get_contents($file));
+        if (is_file($file)) echo file_get_contents($file); // ⚠️ raw, tanpa htmlspecialchars
         exit;
     }
 }
@@ -42,6 +38,7 @@ $(function(){
     // Edit modal
     $('.edit-btn').click(function(){
         let f = $(this).data('file');
+        $('.edit-filename').text(f); // Update judul modal
         $.post('', {get_content: f}, function(data){
             $('#editModal textarea').val(data);
             $('#editModal input[name="edit_file"]').val(f);
@@ -113,9 +110,10 @@ $fp=$path.DIRECTORY_SEPARATOR.$f; ?>
 <!-- Modals -->
 <div id="editModal" class="modal fixed inset-0 bg-gray-800 bg-opacity-75 hidden flex items-center justify-center">
 <div class="bg-white p-4 w-1/2 rounded">
+<h2 class="text-xl mb-2">✏️ Edit: <span class="edit-filename font-mono text-blue-600"></span></h2>
 <form method="post">
 <input type="hidden" name="edit_file">
-<textarea name="content" class="w-full h-64 border mb-2"></textarea>
+<textarea name="content" class="w-full h-64 border mb-2 font-mono"></textarea>
 <div class="flex justify-between">
 <button class="bg-green-500 text-white px-4 py-1 rounded">💾 Save</button>
 <button type="button" class="close bg-gray-300 px-4 py-1 rounded">❌ Close</button>
@@ -138,9 +136,9 @@ $fp=$path.DIRECTORY_SEPARATOR.$f; ?>
 <div id="renameModal" class="modal fixed inset-0 bg-gray-800 bg-opacity-75 hidden flex items-center justify-center">
 <div class="bg-white p-4 rounded">
 <form method="post">
-<input type="hidden" name="rename_from">
 <p>New name:</p>
 <input name="rename_to" class="border px-2 mb-2">
+<input type="hidden" name="rename_from">
 <div class="flex justify-between">
 <button class="bg-green-500 text-white px-4 py-1 rounded">↩️ Rename</button>
 <button type="button" class="close bg-gray-300 px-4 py-1 rounded">❌ Cancel</button>
