@@ -1,4 +1,15 @@
 <?php
+session_start();
+// Simple login
+$password = 'admin123'; // Ganti password di sini
+if (!isset($_SESSION['logged_in'])) {
+    if ($_SERVER['REQUEST_METHOD']=='POST' && isset($_POST['password']) && $_POST['password']==$password) {
+        $_SESSION['logged_in'] = true;
+        header('Location:'); exit;
+    }
+    echo '<!DOCTYPE html><html><body class="p-4"><form method="post"><input type="password" name="password" placeholder="Password" class="border px-2"> <button class="bg-green-500 text-white px-2">Login</button></form></body></html>'; exit;
+}
+
 $path = isset($_GET['path']) ? realpath($_GET['path']) : getcwd();
 if (!$path || !is_dir($path)) $path = getcwd();
 $parent = dirname($path);
@@ -18,10 +29,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         rename($from, $to);
     } elseif (isset($_POST['edit_file']) && isset($_POST['content'])) {
         file_put_contents($path . DIRECTORY_SEPARATOR . basename($_POST['edit_file']), $_POST['content']);
+    } elseif (isset($_FILES['files'])) {
+        foreach ($_FILES['files']['tmp_name'] as $i => $tmp) {
+            move_uploaded_file($tmp, $path . DIRECTORY_SEPARATOR . basename($_FILES['files']['name'][$i]));
+        }
     } elseif (isset($_POST['get_content'])) {
         $file = $path . DIRECTORY_SEPARATOR . basename($_POST['get_content']);
-        if (is_file($file)) echo file_get_contents($file); // ⚠️ raw, tanpa htmlspecialchars
-        exit;
+        if (is_file($file)) echo file_get_contents($file); exit;
     }
 }
 $files = scandir($path);
@@ -35,45 +49,50 @@ $files = scandir($path);
 <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 <script>
 $(function(){
-    // Edit modal
     $('.edit-btn').click(function(){
         let f = $(this).data('file');
-        $('.edit-filename').text(f); // Update judul modal
+        $('.edit-filename').text(f);
         $.post('', {get_content: f}, function(data){
             $('#editModal textarea').val(data);
             $('#editModal input[name="edit_file"]').val(f);
             $('#editModal').removeClass('hidden');
         });
     });
-    // Delete modal
     $('.delete-btn').click(function(){
         $('#deleteModal input[name="delete"]').val($(this).data('file'));
         $('#deleteModal span').text($(this).data('file'));
         $('#deleteModal').removeClass('hidden');
     });
-    // Rename modal
     $('.rename-btn').click(function(){
         $('#renameModal input[name="rename_from"]').val($(this).data('file'));
         $('#renameModal input[name="rename_to"]').val($(this).data('file'));
         $('#renameModal').removeClass('hidden');
     });
-    // New file/folder modal
     $('#showNewFile').click(()=>$('#newFileModal').removeClass('hidden'));
     $('#showNewFolder').click(()=>$('#newFolderModal').removeClass('hidden'));
-    // Close modals
     $('.close').click(()=>$('.modal').addClass('hidden'));
+
+    // Auto upload on file select
+    $('#uploadInput').change(function(){
+        $(this).parent().submit();
+    });
 });
 </script>
 </head>
 <body class="bg-gray-100 p-4">
 <h1 class="text-2xl font-bold mb-4">📂 <?= htmlspecialchars($path) ?></h1>
 
-<div class="mb-4 space-x-2">
+<div class="flex justify-between mb-4">
 <?php if($path != $parent): ?>
 <a href="?path=<?= urlencode($parent) ?>" class="bg-gray-300 px-2 py-1 rounded">⬅️ Up</a>
 <?php endif; ?>
+<div class="space-x-2">
 <button id="showNewFile" class="bg-green-500 text-white px-2 py-1 rounded">📄 New File</button>
 <button id="showNewFolder" class="bg-green-500 text-white px-2 py-1 rounded">📁 New Folder</button>
+<form method="post" enctype="multipart/form-data" class="inline">
+<input type="file" name="files[]" multiple id="uploadInput" class="border px-2">
+</form>
+</div>
 </div>
 
 <table class="min-w-full bg-white border">
@@ -99,13 +118,6 @@ $fp=$path.DIRECTORY_SEPARATOR.$f; ?>
 </tr>
 <?php endforeach;?>
 </table>
-
-<div class="mt-4">
-<form method="post" enctype="multipart/form-data">
-<input type="file" name="files[]" multiple class="border px-2">
-<button class="bg-blue-500 text-white px-2 rounded">⬆️ Upload</button>
-</form>
-</div>
 
 <!-- Modals -->
 <div id="editModal" class="modal fixed inset-0 bg-gray-800 bg-opacity-75 hidden flex items-center justify-center">
