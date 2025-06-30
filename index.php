@@ -28,11 +28,11 @@ $parent = dirname($path);
 // Handle sort preference
 if(isset($_GET['sort'])) $_SESSION['sort']=$_GET['sort'];
 if(isset($_GET['order'])) $_SESSION['order']=$_GET['order'];
-$sort = $_SESSION['sort'] ?? 'name';
-$order = $_SESSION['order'] ?? 'asc';
+$sort = isset($_SESSION['sort']) ? $_SESSION['sort'] : 'name';
+$order = isset($_SESSION['order']) ? $_SESSION['order'] : 'asc';
 
 // Handle search
-$search = $_GET['search'] ?? '';
+$search = isset($_GET['search']) ? $_GET['search'] : '';
 
 // Handle POST actions
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
