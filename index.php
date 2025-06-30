@@ -185,9 +185,7 @@ body.dark table { background-color: #1f2937; color: #f3f4f6; }
 body.dark table tr { border-color: #374151; }
 body.dark .bg-gray-200 { background-color: #374151 !important; }
 body.dark .bg-white { background-color: #1f2937 !important; color: #f3f4f6; }
-body.dark input, body.dark textarea, body.dark select {
-  background-color: #374151 !important; color: #f3f4f6;
-}
+body.dark input, body.dark textarea, body.dark select {background-color: #374151 !important; color: #f3f4f6;}
 body.dark .border { border-color: #4b5563 !important; }
 body.dark .text-gray-700 { color: #d1d5db !important; }
 body.dark .text-gray-500 { color: #9ca3af !important; }
@@ -297,7 +295,7 @@ $(function(){
     <tr class="border-t hover:bg-yellow-200 dark:hover:bg-gray-700">
     <td class="p-2"><?php if(is_dir($fp)):?><a href="?path=<?=urlencode($fp)?>" class="text-blue-500">📁 <?=htmlspecialchars($f['name'])?></a><?php else:?>📄 <?=htmlspecialchars($f['name'])?><?php endif;?></td>
     <td class="p-2"><?=htmlspecialchars($f['owner'])?></td>
-    <td class="p-2"><button data-file="<?=htmlspecialchars($f['name'])?>" data-perm="<?=htmlspecialchars($f['perm'])?>" class="perm-btn underline text-blue-500"><?=$f['perm']?></button></td>
+    <td class="p-2"><button data-file="<?=htmlspecialchars($f['name'])?>" data-perm="<?=htmlspecialchars($f['perm'])?>" class="perm-btn underline px-2 py-1 rounded <?=is_writable($fp)?'bg-green-200 text-green-800':'bg-red-200 text-red-800'?>"><?=$f['perm']?></button></td>
     <td class="p-2"><button data-file="<?=htmlspecialchars($f['name'])?>" data-mtime="<?=$mtime?>" class="mtime-btn underline text-blue-500"><?=date('Y-m-d H:i',$f['mtime'])?></button></td>
     <td class="p-2 space-x-1"><?php if(!is_dir($fp)):?><button data-file="<?=htmlspecialchars($f['name'])?>" class="edit-btn bg-gray-300 px-2 rounded" title="Edit">📝</button><?php endif;?><button data-file="<?=htmlspecialchars($f['name'])?>" class="rename-btn bg-gray-300 px-2 rounded" title="Rename">✍🏼</button><button data-file="<?=htmlspecialchars($f['name'])?>" class="delete-btn bg-gray-300 px-2 rounded" title="Delete">🗑️</button></td></tr><?php endforeach;?>
     </table>
