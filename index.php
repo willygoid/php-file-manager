@@ -239,7 +239,7 @@ $(function(){
         <?=htmlspecialchars($crumb['name'])?>
       </a>
       <?php else: ?>
-      <span class="ms-1 text-sm font-medium text-gray-500 md:ms-2"><?=htmlspecialchars($crumb['name'])?></span>
+      <span class="ms-1 text-sm font-medium <?=is_writable($crumb['path'])?'text-green-500':'text-red-500'?> md:ms-2"><?=htmlspecialchars($crumb['name'])?></span>
       <?php endif;?>
     </li>
     <?php endforeach; ?>
