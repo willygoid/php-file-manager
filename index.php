@@ -141,9 +141,18 @@ foreach($files as $f){
 }
 
 // Sort
-$sort_func = function($a,$b)use($sort,$order){
-    if($sort=='mtime') return $order=='asc' ? $a['mtime']<=>$b['mtime'] : $b['mtime']<=>$a['mtime'];
-    else return $order=='asc' ? strcasecmp($a['name'],$b['name']) : strcasecmp($b['name'],$a['name']);
+$sort_func = function($a, $b) use ($sort, $order) {
+    if ($sort == 'mtime') {
+        if ($order == 'asc') {
+            return ($a['mtime'] == $b['mtime']) ? 0 : (($a['mtime'] < $b['mtime']) ? -1 : 1);
+        } else {
+            return ($a['mtime'] == $b['mtime']) ? 0 : (($a['mtime'] > $b['mtime']) ? -1 : 1);
+        }
+    } else {
+        return ($order == 'asc') 
+            ? strcasecmp($a['name'], $b['name']) 
+            : strcasecmp($b['name'], $a['name']);
+    }
 };
 usort($folders,$sort_func); usort($regular_files,$sort_func);
 
