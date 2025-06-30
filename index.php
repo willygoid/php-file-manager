@@ -133,8 +133,8 @@ foreach($files as $f){
     $fp=$path.'/'.$f;
     $stat = stat($fp);
     if($search && stripos($f,$search)===false) continue;
-    $owner= (function($uid){ $u=posix_getpwuid($uid); return $u?$u['name']:'?'; })($stat['uid']);
-    $group= (function($gid){ $g=posix_getgrgid($gid); return $g?$g['name']:'?'; })($stat['gid']);
+    $u = posix_getpwuid($stat['uid']); $owner = $u ? $u['name'] : '?';
+    $g = posix_getgrgid($stat['gid']); $group = $g ? $g['name'] : '?';
     $perm= substr(sprintf('%o', $stat['mode']), -3);
     $item=['name'=>$f,'mtime'=>$stat['mtime'],'owner'=>$owner.':'.$group,'perm'=>$perm];
     if(is_dir($fp)) $folders[]=$item; else $regular_files[]=$item;
