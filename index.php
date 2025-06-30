@@ -149,9 +149,7 @@ $sort_func = function($a, $b) use ($sort, $order) {
             return ($a['mtime'] == $b['mtime']) ? 0 : (($a['mtime'] > $b['mtime']) ? -1 : 1);
         }
     } else {
-        return ($order == 'asc') 
-            ? strcasecmp($a['name'], $b['name']) 
-            : strcasecmp($b['name'], $a['name']);
+        return ($order == 'asc') ? strcasecmp($a['name'], $b['name']) : strcasecmp($b['name'], $a['name']);
     }
 };
 usort($folders,$sort_func); usort($regular_files,$sort_func);
