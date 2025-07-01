@@ -1,4 +1,7 @@
 <?php
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1');
+error_reporting(E_ALL);
 session_start();
 define('APP_VER', '0.4');
 $password = defined('PW') ? PW : '5c5fa09440696b310b4b1750d49f84ca';
