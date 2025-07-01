@@ -152,9 +152,9 @@ foreach($files as $f){
 }
 
 //Calculate file size
-function getSize(int $size): string {
-    for ($i = 0; $size >= 1024 && $i < 4; $i++) $size /= 1024;
-    return round($size, 2) . ['B','KB','MB','GB','TB'][$i];
+function getSize($s) {
+    for ($i = 0; $s >= 1024 && $i < 4; $i++) $s /= 1024;
+    return round($s, 2) . ['B','KB','MB','GB','TB'][$i];
 }
 
 // Sort
