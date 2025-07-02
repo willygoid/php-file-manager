@@ -405,7 +405,7 @@ if($action=='serverinfo'):
     <th class="p-2">Action</th></tr>
     <?php if($path != $parent): ?><tr class="border-t hover:bg-yellow-200 dark:hover:bg-gray-700" title="Goto Parent Dir"><td class="p-2"><a href="?path=<?=urlencode($parent)?>" class="text-blue-500">📁 ..</a></td><td class="p-2">-</td><td class="p-2">-</td><td class="p-2">-</td><td class="p-2">-</td><td class="p-2"></td></tr><?php endif; ?>
     <?php foreach(array_merge($folders,$regular_files) as $f):$fp=$path.'/'.$f['name'];$mtime=date('Y-m-d\TH:i',$f['mtime']); ?>
-    <tr class="border-t hover:bg-yellow-200 dark:hover:bg-gray-700" title="<?=htmlspecialchars($f['name'])?>">
+    <tr class="border-t hover:bg-yellow-200 hover:text-gray-900" title="<?=htmlspecialchars($f['name'])?>">
     <td class="p-2"><?php if(is_dir($fp)):?><a href="?path=<?=urlencode($fp)?>" class="text-blue-500">📁 <?=htmlspecialchars($f['name'])?></a><?php else:?>📄 <?=htmlspecialchars($f['name'])?><?php endif;?></td>
     <td class="p-2"><?=htmlspecialchars($f['owner'])?></td>
     <td class="p-2"><?=htmlspecialchars($f['size'])?></td>
