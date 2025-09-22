@@ -169,8 +169,8 @@ foreach($files as $f){
     $fp=$path.'/'.$f;
     $stat = stat($fp);
     if($search && stripos($f,$search)===false) continue;
-    $u = function_exists('posix_getpwuid') ? (posix_getpwuid($stat['uid'])['name'] ?? '?') : '?';
-    $g = function_exists('posix_getgrgid') ? (posix_getgrgid($stat['gid'])['name'] ?? '?') : '?';
+    $u = function_exists('posix_getpwuid') ? (isset(posix_getpwuid($stat['uid'])['name']) ? posix_getpwuid($stat['uid'])['name'] : '?') : '?';
+    $g = function_exists('posix_getgrgid') ? (isset(posix_getgrgid($stat['gid'])['name']) ? posix_getgrgid($stat['gid'])['name'] : '?') : '?';
     $perm= substr(sprintf('%o', $stat['mode']), -3);
     $item=['name'=>$f,'mtime'=>$stat['mtime'],'owner'=>$u.':'.$g,'perm'=>$perm];
     if(is_dir($fp)){ $folders[]=$item; }else{ $item['size'] = getSize($stat['size']); $regular_files[]=$item;}
